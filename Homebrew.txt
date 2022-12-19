@@ -1,0 +1,9 @@
+Clear Cache
+-------------------------------------
+brew cleanup
+brew cleanup -n #check how much of storage it would clear
+brew cleanup --dry-run
+
+Install
+-------------------------------------
+brew install --force --verbose --debug --cask powershell

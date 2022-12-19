@@ -1,0 +1,393 @@
+
+MESSAGING
+===============================================================
+    to use JMS in a Spring Boot application e.g ActiveMQ
+
+    I. CONFIGURATION
+    ==========================================
+    ActiveMQ
+    ---------------------------------------
+        //1. pom.xml
+        --------------
+        <dependency> 
+            <groupId>org.springframework.boot</groupId> <artifactId>spring-boot-starter-activemq</artifactId>
+        </dependency>
+
+        //ActiveMQ Configuration
+        -------------------------------------
+        spring.activemq.broker-url
+        spring.activemq.user
+        spring.activemq.password
+        spring.activemq.in-memory //Should an embedded broker be used, default true. Ignored when spring.activemq.broker-url has been explicitly set
+        spring.activemq.non-blocking-redelivery //Stop message delivery before redelivering rolled-back messages; when enabled message order will not be preserved!, default false
+        spring.activemq.close-timeout Time to wait to consider a close to be effective, default 15 seconds
+        spring.activemq.send-timeout //Time to wait for a response from the broker, default 0 (unlimited)
+        spring.activemq.packages.trust-all //When using Java Serialization to send JMS messages should classes from all packages be trusted, default none 
+        spring.activemq.packages.trusted //Comma-separated list of specific packages to trust
+
+    Artemis
+    ---------------------------------------
+
+        //1. pom.xml
+        --------------
+        <dependency> 
+            <groupId>org.springframework.boot</groupId> 
+            <artifactId>spring-boot-starter-artemis</artifactId>
+        </dependency>
+
+        //Artemis Configuration
+        -------------------------------------
+        spring.artemis.host
+        spring.artemis.port
+        spring.artemis.user
+        spring.artemis.password
+        spring.artemis.mode // either native or embedded. default is none leading to auto-detection of the mode. When the embedded classes are found, will run in embedded mode
+
+    JNDI based configuration
+    -------------------------------------
+
+        //pom.xml
+        --------------
+        <dependency> 
+            <groupId>org.springframework</groupId> <artifactId>spring-jms</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>javax.jms</groupId> 
+            <artifactId>javax.jms-api</artifactId> <scope>provided</scope>
+        </dependency>
+        //jms-api will be supplied by your JEE container
+
+        Note: Spring Boot will first try to detect the ConnectionFactory in the JNDI register under one of the well-known names java:/JmsXA and java:/ XAConnectionFactory or by the name specified in the spring.jms.jndi-name property
+
+        spring.jms.jndi-name=java:/jms/connectionFactory
+
+        Note: it will also automatically create a JndiDestinationResolver so that the queues and topics will also be detected in JNDI
+
+        //Optional Manual Configuration
+        -------------------------------------
+            When Spring Boot cannot auto-configure your ConnectionFactory or Multiple ConnectionFactory instances are needed.
+
+            @Bean
+            public ConnectionFactory connectionFactory() {
+            var connectionFactory = new ActiveMQConnectionFactory("vm://localhost?
+            broker.persistent=false");
+            connectionFactory.setClientID("someId");
+            connectionFactory.setCloseTimeout(125);
+            return connectionFactory;
+            }
+
+            Note: When Spring Boot detects a manually configured ConnectionFactory, it doesn't attempt to create one itself.
+
+    II. Sending Messages Using JMS
+    ==========================================
+        When using Spring Boot, when it detects JMS and a single ConnectionFactory it will also automatically configure a JmsTemplate
+
+        @Component
+        class MessageSender {
+        private final JmsTemplate jms;
+        MessageSender(JmsTemplate jms) { this.jms = jms;
+        }
+        @Scheduled(fixedRate = 1000) public void sendTime() {
+            jms.convertAndSend("time-queue", "Current Date & Time is: " +
+            LocalDateTime.now());
+        } }
+
+
+
+SPRING BOOT ACTUATOR
+===============================================================
+Enable and Configure Spring Boot Actuator
+-----------------------------------------
+    //pom.xml
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
+    Note: Spring Boot will automatically set up the health and metrics based on the beans in the application context.
+    DataSource,Hibernate, RabbitMQ, Caches, etc
+    Note: Use jConsole to see the JMX endpoints
+    Note: localhost:8080/actuator
+        /actuator/health 
+        /actuator/info
+
+    //2. application.properties to enable more than health and info
+    -----------------------------------------------------------
+    management.endpoints.web.exposure.include=* //all endpoints
+    management.endpoints.web.exposure.exclude=...
+
+    //3. Management Server Properties for actuator configuration
+    ------------------------------------------------------------
+        management.server.add-application-context-header //X-Application-Context header to the response
+
+        management.server.port //default server.port
+        management.server.address //default server.address
+        management.server.servlet.context-path //default /
+        management.server.ssl.* //configure ssl
+
+        e.g application.properties
+        //Add the X-Application-Context header.
+        management.server.add-application-context-header=true
+        management.server.port=8090
+        //http://localhost:8090/actuator
+
+        Note: Only applicable for embedded server and not for external server
+
+    //4. Configure Individual Management Endpoints
+    -----------------------------------------------
+        management.endpoint.<endpoint-name>.enabled //generally defaults to true
+        management.endpoint.<endpoint-name>.cache.time-to-live //time to cache a response. defualt : 0
+        management.endpoint.health.show-details //default - never, always, when-authorized
+        management.endpoint.health.roles // used with when-authorized
+
+    //5. Securing Management Endpoints
+    -----------------------------------------------
+        Note: When Spring Boot detects both Spring Boot Actuator and Spring Security, it will enable secure access to management endpoints automatically
+
+        //pom.xml
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+    //6.Configure Healthchecks
+    -------------------------------------
+        http://localhost:8090/actuator/health
+        Which HealthIndicators are present can be controlled by setting the management.health.<health-indicator>.enabled property
+
+        management.health.diskspace.enabled=false
+
+    //7. Configure Metrics
+    -------------------------------------
+      http://localhost:8090/actuator/metrics
+      http://localhost:8090/actuator/metrics/{name-of-metric}
+        http://localhost:8090/actuator/metrics/system.cpu.usage
+
+      Note: Spring Boot uses micrometer.io1 to record metrics.
+            Metrics are enabled by default for the features detected by Spring Boot. 
+
+            //disabling metrics
+            --------------------
+            management.metrics.enable.system=false
+            management.metrics.enable.tomcat=false
+
+    //8. Create Custom Health Checks and Metrics
+    ----------------------------------------------
+        Note: beans of type HealthIndicator and MetricBinder are automatically registered
+
+        //Option 1: extends AbstractHealthIndicator
+        @Component
+        class TaskSchedulerHealthIndicator extends AbstractHealthIndicator {
+
+        private final ThreadPoolTaskScheduler taskScheduler;
+
+        TaskSchedulerHealthIndicator(ThreadPoolTaskScheduler taskScheduler) {
+            this.taskScheduler = taskScheduler;
+        }
+
+        @Override
+        protected void doHealthCheck(Health.Builder builder) throws Exception {
+            int poolSize = taskScheduler.getPoolSize();
+            int active = taskScheduler.getActiveCount();
+            int free = poolSize - active;
+            builder
+            .withDetail("active", taskScheduler.getActiveCount())
+            .withDetail("poolsize", taskScheduler.getPoolSize());
+            if (poolSize > 0 && free <= 1) {
+            builder.down();
+            } else {
+            builder.up();
+            }
+        }
+        }
+
+        //Option 1: extends MeterBinder
+        @Component
+        class TaskSchedulerMetrics implements MeterBinder {
+
+        private final ThreadPoolTaskScheduler taskScheduler;
+
+        TaskSchedulerMetrics(ThreadPoolTaskScheduler taskScheduler) {
+            this.taskScheduler = taskScheduler;
+        }
+
+        @Override
+        public void bindTo(MeterRegistry registry) {
+            FunctionCounter
+            .builder(
+                "task.scheduler.active",
+                taskScheduler,
+                ThreadPoolTaskScheduler::getActiveCount
+            )
+            .register(registry);
+            FunctionCounter
+            .builder(
+                "task.scheduler.pool-size",
+                taskScheduler,
+                ThreadPoolTaskScheduler::getPoolSize
+            )
+            .register(registry);
+        }
+        }
+    
+    //9. export the metrics to an external system 
+    ------------------------------------------------------
+        like graphite,DataDog, Ganglia, or regular StatsD to create a dashboard to monitor 
+
+        //1. pom.xml
+        -------------
+        <dependency>
+            <groupId>io.micrometer</groupId> <artifactId>micrometer-registry-graphite</artifactId>
+        </dependency>
+
+        //2. export configuration
+        -----------------------------------------------
+            management.metrics.export.<registry-name>.enabled
+            management.metrics.export.<registry-name>.host //host to send metrics to e.g graphite hostname
+            management.metrics.export.<registry-name>.port //port to send metrics to e.g graphite port
+            management.metrics.export.<registry-name>.step //how often to send metrics, default 1 minute
+            management.metrics.export.<registry-name>.rate-units //Base time unit used to report rates, default seconds
+            management.metrics.export.<registry-name>.duration-units //Base time unit used to report durations, default milliseconds
+
+            e.g management.metrics.export.graphite.step=10s
+            //To report the metrics every ten seconds
+
+TASKSCHEDULER
+===============================================================
+    Adding @EnableScheduling is enough to have Spring Boot create a default TaskScheduler
+
+PACKAGING
+===============================================================
+Create an Executable Archive
+-------------------------------------
+
+    <plugin>
+    <groupId>org.springframework.boot</groupId> 
+    <artifactId>spring-boot-maven-plugin</artifactId> 
+    <configuration>
+        <executable>true</executable> </configuration>
+    </plugin>
+
+    chmod +x your-application.jar
+
+    head -n 290 your-application.jar
+
+    Specifying Configuration
+    -------------------------------------
+        .conf file next to your executable archive (it must be named your-application.conf)
+        //properties: MODE,USE_START_STOP_DAEMON,PID_FOLDER,LOG_FOLDER,CONF_FOLDER,LOG_FILENAME,APP_NAME,RUN_ARGS,JAVA_HOME,JAVA_OPTS,JARFILE,DEBUG,STOP_WAIT_TIME
+
+        JAVA_OPTS=-Xmx1024m //assign a maximum of 1GB of memory to your application
+
+Create a WAR for Deployment
+-------------------------------------
+    Note: options from the server and management.servlet namespaces don’t apply anymore. So when a server.port has been defined, it will be ignored
+    http://<name-of-server>:8080/<name-of-war>
+
+    //1.pom.xml
+    <packaging>war</packaging>
+
+    //2.pom.xml
+    <dependency> 
+        <groupId>org.springframework.boot</groupId> 
+        <artifactId>spring-boot-starter-tomcat</artifactId> 
+        <scope>provided</scope>
+    </dependency>
+    //Spring Boot plugin will not add the libraries to the default WEB-INF/lib --instead WEB-INF/lib-provided directory
+
+    //3 application to extend the SpringBootServletInitializer AND override the configure method.
+    @SpringBootApplication
+    public class HelloWorldApplication extends SpringBootServletInitializer {
+
+    public static void main(String[] args) {
+        SpringApplication.run(HelloWorldApplication.class, args);
+    }
+
+    @Override
+    protected SpringApplicationBuilder configure(
+        SpringApplicationBuilder builder
+    ) {
+        return builder.sources(HelloWorldApplication.class);
+    }
+    }
+
+Reduce Archive Size Through the ThinLauncher
+--------------------------------------------
+    Note: default -> fat JAR, a JAR with all the dependencies 
+        BOOT-INF/lib
+    Thin Launcher -> custom layout.dependencies will be downloaded before starting the application ==> Slow startup
+    class named ThinJarWrapper -> entrypoint of your application
+        pom.xml and/ or a META-INF/thin.properties to determine the dependencies
+        will locate another JAR file (the “launcher”).
+            create a custom class loader with all the downloaded dependencies on the classpath. Then it runs the application’s own main method with that class loader.
+
+    Note: thin.repo in the META-INF/thin. properties to point to the mirror like Nexus
+    //pom.xml
+    <plugin>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-maven-plugin</artifactId>
+    <dependencies>
+        <dependency>
+        <groupId>org.springframework.boot.experimental</groupId>
+        <artifactId>spring-boot-thin-layout</artifactId>
+        <version>1.0.15.RELEASE</version>
+        </dependency>
+    </dependencies>
+    </plugin>
+
+    Using Docker
+    -------------------------------------
+    //1. dockerfile-maven-plugin from Spotify
+    <plugin>
+    <groupId>com.spotify</groupId>
+    <artifactId>dockerfile-maven-plugin</artifactId>
+    <version>1.4.4</version>
+    <configuration>
+        <repository>spring-boot-recipes/${project.name}</repository>
+        <tag>${project.version}</tag>
+        <buildArgs>
+        <JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>
+        </buildArgs>
+    </configuration>
+    <dependencies>
+        <dependency>
+        <groupId>javax.activation</groupId>
+        <artifactId>javax.activation-api</artifactId>
+        <version>1.2.0</version>
+        </dependency>
+        <dependency>
+        <groupId>org.codehaus.plexus</groupId>
+        <artifactId>plexus-archiver</artifactId>
+        <version>3.6.0</version>
+        </dependency>
+    </dependencies>
+    </plugin>
+
+    Note:  
+    name of the image - repository property
+    ${project.version} - the tag
+    plexus-archiver - default version with Maven doesn’t work on Java 9+.
+    javax.activation-api - not available in java 9 
+
+    //2. Dockerfile in the root of the project.
+    FROM openjdk:11-jre-slim
+    VOLUME /tmp
+    ARG JAR_FILE
+    COPY ${JAR_FILE} app.jar
+    ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar"]
+
+    //3. Generate the docker container
+    mvn clean build dockerfile:build 
+
+    //4. launch the container
+    docker run -d spring-boot-recipes/dockerize:2.0.0-SNAPSHOT
+    //with profile properties -e switch
+    docker run -d -e SPRING_PROFILES_ACTIVE='Prod' spring-boot-recipes/dockerize:2.0.0-SNAPSHOT
+
+    Note: -e switch
+    //5. logs
+    docker logs <name-of-container> --follow 
+
+    
+
+

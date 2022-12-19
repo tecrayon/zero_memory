@@ -1,3 +1,245 @@
+Environment Setup
+===============================================================
+    Install visual studio PowerShell extension
+    code --install-extension ms-vscode.powershell
+
+Opening powershell
+-------------------------------------
+    Start→Run, and then type PowerShell
+
 Install on Mac
 -------------------------------------
-brew install --cask powershell
+    brew install --cask powershell
+    #brew uninstall --cask powershell
+    brew install --force --verbose --debug --cask powershell
+
+To run PowerShell
+-------------------------------------
+    pwsh
+
+Version
+-------------------------------------
+    $PSVersionTable
+
+Getting help on a commandlet
+-------------------------------------
+    Update-Help // one time
+
+    Get-Help Get-Process
+
+    help Get-Process //pipes Get-Help output to less
+    Help *event*
+    Help Get-Item -Example // view examples
+    Help Get-Item -Online //online help
+    
+
+
+Search for commandlets
+-------------------------------------
+    Get-Command *event*
+    Get-Command -Noun *event*
+    Get-Command -Verb Get
+    Get-Command *event* -Type cmdlet
+
+    gcm *event*
+
+Explore an object
+-------------------------------------
+    "Hello World" | Get-Member
+
+ExecutionPolicy
+-------------------------------------
+    Get-ExecutionPolicy
+    PowerShell.exe >> -ExecutionPolicy
+        //Restricted,AllSigned,RemoteSigned,Unrestricted,Bypass
+
+Get Alias for a commandlet
+-------------------------------------
+    Get-Alias -Definition "Get-Process"
+    gal -def Get-History
+
+Getting alias for a parameter
+-------------------------------------
+    (get-command get-process | select -Expand  parameters).erroraction.aliases 
+
+Create Custom Alias
+-------------------------------------
+    New-Alias
+    Export-Alias
+    Import- Alias
+    //alias can’t include any predetermined parameters.
+
+Change directory
+-------------------------------------
+    Set-Location -Path /
+    cd /usr/bin
+
+Check space usage
+-------------------------------------
+    Get-PSDrive
+    Get-PSDrive Temp
+
+create a new directory
+-------------------------------------
+    New-Item testFolder -ItemType Directory
+    mkdir testFolder
+
+create a new file
+-------------------------------------
+    New-Item –Path ~/labs -Name test.txt -ItemType file
+
+Getting Environment Variables
+-------------------------------------
+    Get-ChildItem env:*
+
+set the environment variable A to the value 1
+---------------------------------------------
+    Set-Item -Path Env:/A -Value 1
+
+Windows Registry
+-------------------------------------
+    set-location -Path hkcu: //HKEY_CURRENT_USER
+    set-location -Path software
+    get-childitem
+    set-location microsoft
+    Get-ChildItem
+
+    //setting a registry value
+    Set-ItemProperty -Path dwm -PSProperty EnableAeroPeek -Value 0
+
+Exporting to CSV
+-------------------------------------
+    Get-Process | Export-CSV procs.CSV
+    //Import-CSV procs.CSV
+
+Current working directory 
+-------------------------------------
+    pwd
+
+Changing command prompt
+-------------------------------------
+    function Prompt { "PS > " }
+
+Getting string length
+-------------------------------------
+    "Hello World".Length
+
+Get process details
+-------------------------------------
+    $process = gps Siri
+
+Killing a process
+-------------------------------------
+    $process = gps Siri
+    $process.Kill()
+
+is Leap year check
+-------------------------------------
+    [DateTime]::IsLeapYear(2008)
+
+Date from now
+-------------------------------------
+    $result = [DateTime] "06/21/2011" - [DateTime]::Now
+    $result.TotalDays
+
+Execution Preview
+-------------------------------------
+    gps [b-t]*[c-r] | Stop-Process -whatif
+
+Check number of handles of running processes
+---------------------------------------------
+    $handleCount = 0
+    foreach($process in Get-Process) { $handleCount += $process.Handles }
+    $handleCount
+
+Retrieve a web page and process its content
+-------------------------------------
+    $webClient = New-Object System.Net.WebClient
+    $content = $webClient.DownloadString(                "http://blogs.msdn.com/PowerShell/rss.aspx")
+    $content.Substring(0,1000)
+
+Get History
+-------------------------------------
+    Get-History/ghy/h/history 
+    Get-History | Foreach-Object { $_.CommandLine } > c:\temp\script.ps1
+
+Handling XML
+-------------------------------------
+    $xmlContent = [xml] $content
+    $xmlContent
+    $xmlContent.rss.channel.item | select Title
+
+To run a command that contains a space in its name
+--------------------------------------------------
+    & 'C:\Program Files\Program\Program.exe' arguments// & -> invoke operator
+    //important - use single quotes, double quotes evaluate expressiosn
+
+
+To run a command in the current directory
+-----------------------------------------
+    .\Program.exe arguments
+    // Or to omit ., add a period (.) to your PATH environment variable
+
+To run a command with spaces in its name from the current directory
+----------------------------------------------------------
+    & '.\Program With Spaces.exe' arguments
+
+passing a variable as a cmdlet argument
+----------------------------------------
+    $filename = "c:\path\to\other\file.txt"
+    Get-Acl -Path $filename
+    //Invoke-Expression "Get-Acl -Path $filename"// Wrong.
+
+Debugging special character related issues in Powershell prompt
+----------------------------------------------------------------
+    Trace-Command NativeCommandParameterBinder {cmd /c echo '!"#$%&''()*+,-./09:;<=>?@AZ[\]^_`az{|}~'} -PsHost
+    OR
+    ping --% %host%
+    //verbatim argument marker (--%) 
+    //prevent PowerShell from interpreting any of the remaining characters on the line. 
+
+Supply Default Values for Parameters
+-------------------------------------
+    $PSDefaultParameterValues["Get-Process:ID"] = $pid
+    //Add an entry to the PSDefaultParameterValues hashtable.
+    Get-Process or gps
+    gps -Id 1930 
+
+Invoke a Long-Running or Background Command
+-------------------------------------------
+    Start-Job { while($true) { Get-Random; Start-Sleep 5 } } -Name Sleeper
+    Get-Job OR gjb //Gets all jobs associated with the current session
+    Receive-Job Sleeper //Retrieves any output the job has generated 
+    Stop-Job Sleeper or spjb Sleeper
+    Remove-Job Sleeper 
+
+    Start-Job -Name ErrorJob { Write-Error Error! }
+    Receive-Job ErrorJob
+    gjb ErrorJob |  Format-List * 
+    $job.ChildJobs[0] | Format-List *
+    $job.ChildJobs[0].Error
+
+Monitor a Command for Changes
+-------------------------------------
+    Watch-Command { Get-Process -Name Notepad | Measure } -UntilChanged
+    //Monitors Notepad processes until you start or stop one.
+
+    Watch-Command { Get-Process -Name Notepad | Measure } -Until "Count : 1"
+    //Monitors Notepad processes until there is exactly one open.
+
+    Watch-Command {
+     Get-Process -Name Notepad | Measure } -While 'Count    : \d\s*\n'
+    //Monitors Notepad processes while there are between 0 and 9 open
+
+Notify Yourself of Job Completion
+-------------------------------------
+    $job = Start-Job -Name TenSecondSleep { Start-Sleep 10 }
+    Register-TemporaryEvent $job StateChanged -Action {[Console]::Beep(100,100)  
+    Write-Host "Job #$($sender.Id) ($($sender.Name)) complete."}
+
+See what variables are in Path
+-------------------------------------
+    //Windows
+    $env:Path -split ';'| sort 
+    //Mac
+    $env:PATH -split ':'| sort
