@@ -1,0 +1,10 @@
+New User Snippet
+-------------------------------------
+{
+        "key": "cmd+k u",
+        "command": "editor.action.insertSnippet",
+        "when": "editorTextFocus",
+        "args": {
+            "snippet": "==============================================================="
+        }
+    }
