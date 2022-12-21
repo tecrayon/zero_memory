@@ -1,4 +1,154 @@
 
+SPRING SECURITY
+===============================================================
+
+    I. Enable Security
+    -------------------------------------
+        //1. pom.xml
+        --------------
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        //will add the spring-security-core, spring-security-config, and spring- security-web dependencies
+        //Note: Enables
+        ----------------
+            authentication with Basic authentication and form login
+            enable HTTP headers for security
+            Servlet API integration
+            anonymous login 
+            disable caching of resources.
+
+        //default user, named user, with a random generated password, visible in the startup logs
+            pass username and password in headers to access the end point
+            http -a user:sadaksjkqweqwe :8080/books
+
+        //2. Testing Controller with security enabled
+        ----------------------------------------------
+        Note: to test your controllers without security
+        -------------------------------------------------
+            @RunWith(SpringRunner.class)
+            @WebMvcTest(value = BookController.class, secure = false) 
+            //secure defaults to true
+            public class BookControllerUnsecuredTest { ... }
+
+        Note: //@WithMockUser,@WithAnonymousUser,@WithUserDetails
+
+        //i. pom.xml
+        -------------
+            <dependency> 
+                <groupId>org.springframework.security</groupId> 
+                <artifactId>spring-security-test</artifactId> 
+                <scope>test</scope>
+            </dependency>
+
+        //ii. Test Class
+        -------------------------------------
+        @RunWith(SpringRunner.class)
+        @WebMvcTest(BookController.class) //security infrastructure will be automatically applied
+        @WithMockUser //default user, with user as the username and password as the password. To test with current user, @WithMockUser or @WithUserDetails should be used
+        public class BookControllerSecuredTest {
+
+        @Test
+        public void shouldAddBook() throws Exception {
+            when(bookService.create(any(Book.class)))
+            .thenReturn(new Book("123456789", "Test Book Stored", "T. Author"));
+            mockMvc
+            .perform(
+                post("/books")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{ \"isbn\" : \"123456789\"}, \"title\" : \"Test
+                    Book\", \"authors\" : [\"T. Author\"]"
+                )
+                .with(csrf()) //adds the CSRF token to the request. Spring Security by default enables. CSRF2 protection. Uses CsrfRequestPostProcessor
+            )
+            .andExpect(status().isCreated())
+            .andExpect(
+                header().string("Location", "http://localhost/books/123456789")
+            );
+        }
+        }
+
+        //Integration Testing Security
+        -------------------------------------
+        Note: When running the test on an external port, @WithMockUser and with(csrf()) will not work. Need to use a  test client such as TestRestTemplate and/or WebTestClient(for WebFlux) 
+
+            //A. using TestRestTemplate
+            ----------------------------------
+            @RunWith(SpringRunner.class)
+            @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+            @TestPropertySource(properties = "spring.security.user.password=s3cr3t")
+            //or in application.properties
+
+            public class BookControllerIntegrationTest {
+
+            @Autowired
+            private TestRestTemplate testRestTemplate;
+
+            @MockBean
+            private BookService bookService;
+
+            @Test
+            public void shouldReturnListOfBooks() throws Exception {
+                when(bookService.findAll())
+                .thenReturn(
+                    Arrays.asList(
+                    new Book("123", "Spring 5 Recipes", "Marten Deinum", "Josh Long"),
+                    new Book("321", "Pro Spring MVC", "Marten Deinum", "Colin Yates")
+                    )
+                );
+                ResponseEntity<Book[]> books = testRestTemplate
+                .withBasicAuth("user", "s3cr3t")
+                .getForEntity("/books", Book[].class);
+                assertThat(books.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(books.getBody()).hasSize(2);
+            }
+            }
+
+            //B. Using WebTestClient
+            -------------------------------------
+            @RunWith(SpringRunner.class)
+            @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+            @TestPropertySource(properties = "spring.security.user.password=s3cr3t")
+            public class BookControllerIntegrationWebClientTest {
+
+            @Autowired
+            private WebTestClient webTestClient;
+
+            @MockBean
+            private BookService bookService;
+
+            @Test
+            public void shouldReturnListOfBooks() throws Exception {
+                when(bookService.findAll())
+                .thenReturn(
+                    Arrays.asList(
+                    new Book("123", "Spring 5 Recipes", "Marten Deinum", "Josh Long"),
+                    new Book("321", "Pro Spring MVC", "Marten Deinum", "Colin Yates")
+                    )
+                );
+                webTestClient
+                .get()
+                .uri("/books")
+                .headers(headers -> headers.setBasicAuth("user", "s3cr3t"))
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBodyList(Book.class)
+                .hasSize(2);
+            }
+            }
+
+
+
+
+
+
+        
+
+
 MESSAGING
 ===============================================================
     to use JMS in a Spring Boot application e.g ActiveMQ
@@ -13,7 +163,7 @@ MESSAGING
             <groupId>org.springframework.boot</groupId> <artifactId>spring-boot-starter-activemq</artifactId>
         </dependency>
 
-        //ActiveMQ Configuration
+        //2. ActiveMQ Configuration
         -------------------------------------
         spring.activemq.broker-url
         spring.activemq.user
@@ -35,7 +185,7 @@ MESSAGING
             <artifactId>spring-boot-starter-artemis</artifactId>
         </dependency>
 
-        //Artemis Configuration
+        //2. Artemis Configuration
         -------------------------------------
         spring.artemis.host
         spring.artemis.port
@@ -46,7 +196,7 @@ MESSAGING
     JNDI based configuration
     -------------------------------------
 
-        //pom.xml
+        //1. pom.xml
         --------------
         <dependency> 
             <groupId>org.springframework</groupId> <artifactId>spring-jms</artifactId>
@@ -63,7 +213,7 @@ MESSAGING
 
         Note: it will also automatically create a JndiDestinationResolver so that the queues and topics will also be detected in JNDI
 
-        //Optional Manual Configuration
+        //2. Optional Manual Configuration
         -------------------------------------
             When Spring Boot cannot auto-configure your ConnectionFactory or Multiple ConnectionFactory instances are needed.
 
@@ -82,15 +232,151 @@ MESSAGING
     ==========================================
         When using Spring Boot, when it detects JMS and a single ConnectionFactory it will also automatically configure a JmsTemplate
 
+        //1
         @Component
         class MessageSender {
+
+        //Step A: Inject JmsTemplate
         private final JmsTemplate jms;
-        MessageSender(JmsTemplate jms) { this.jms = jms;
+
+        MessageSender(JmsTemplate jms) {
+            this.jms = jms;
         }
-        @Scheduled(fixedRate = 1000) public void sendTime() {
-            jms.convertAndSend("time-queue", "Current Date & Time is: " +
-            LocalDateTime.now());
+
+        @Scheduled(fixedRate = 1000)
+        public void sendTime() {
+            //Step B: Actual message sending
+            jms.convertAndSend(
+            "time-queue",
+            "Current Date & Time is: " + LocalDateTime.now()
+            );
+
+            }
+        }
+
+        //2. Integration Testing
+        -------------------------------------
+        @RunWith(SpringRunner.class)
+        @SpringBootTest
+        public class JmsSenderApplicationTest {
+
+            @Autowired
+            private JmsTemplate jms;
+
+            @Test
+            public void shouldSendMessage() throws JMSException {
+                Message message = jms.receive("time-queue");
+                assertThat(message).isInstanceOf(TextMessage.class);
+                assertThat(((TextMessage) message).getText())
+                .startsWith("Current Date & Time is: ");
+            }
+        }
+
+        //3. application.properties for integration test
+        ------------------------------------------------
+        spring.jms.template.receive-timeout=500ms 
+        //default - indefinitely wait.
+
+        //Configure the JmsTemplate
+        -------------------------------------
+        spring.jms.template.default-destination //default when a specific destination is not specified
+        spring.jms.template.delivery-delay  //delivery delay for sending a message
+        spring.jms.template.delivery-mode //persisent/non-persistent. Sets qos-enabled to true
+        spring.jms.template.priority //priority of the message when sending. Default - none. Sets qos-enabled to true
+        spring.jms.template.qos-enabled //default - false. When enabled the priority, delivery-mode, and time-to-live of a message will be set
+        spring.jms.template.receive-timeout //Timeout to use for recieve calls. Default indefinite
+        spring.jms.template.time-to-live //Time-to-live of a JMS message, when set sets qos-enabled to true
+        spring.jms.pub-sub-domain //Default destination is a topic or queue? Default false meaning queue
+
+        Note: JmsTemplate will also be auto-configured with a DestinationResolver and MessageConverter if a unique instance of the beans can be found. If no unique instance can be found, the defaults will be used, DynamicDestinationResolver and SimpleMessageConverter
+
+        //Sending an object and Message Conversion
+        -------------------------------------------
+            var order = new Order(id, BigDecimal.valueOf(amount)); 
+            jms.convertAndSend("orders", order);
+
+            //Converting fails, as Order doesn’t implement Serializable, which is needed to convert the Order into an ObjectMessage
+            OR
+            use JSON - MappingJackson2MessageConverter is needed
+            
+            i. pom.xml
+            ---------------
+            <dependency> 
+                <groupId>com.fasterxml.jackson.core</groupId> 
+                <artifactId>jackson-core</artifactId>
+            </dependency>
+
+            ii. configure the MappingJackson2MessageConverter.
+            ---------------------------------------------------
+                @SpringBootApplication
+                @EnableScheduling
+                public class JmsSenderApplication {
+
+                public static void main(String[] args) {
+                    SpringApplication.run(JmsSenderApplication.class, args);
+                }
+
+                @Bean
+                public MappingJackson2MessageConverter messageConverter() {
+                    var messageConverter = new MappingJackson2MessageConverter();
+                    //default - converts to BytesMessages
+                    //messageConverter.setTargetType(MessageType.TEXT) --> JSON as a String as the payload
+
+                    //default - FQN of the class 
+                    messageConverter.setTypeIdPropertyName("content-type");
+
+                    //default - FQN of the class 
+                    messageConverter.setTypeIdMappings(
+                    Collections.singletonMap("order", Order.class)
+                    );
+                    return messageConverter;
+                }
+                }
+
+            iii. Integration Test
+            -------------------------------------
+                @RunWith(SpringRunner.class)
+                @SpringBootTest
+                public class JmsSenderApplicationTest {
+
+                @Autowired
+                private JmsTemplate jms;
+
+                @Test
+                //approach 1. Manual conversion
+                public void shouldReceiveOrderPlain() throws Exception {
+                    Message message = jms.receive("orders");
+                    assertThat(message).isInstanceOf(BytesMessage.class);
+                    BytesMessage msg = (BytesMessage) message;
+                    ObjectMapper mapper = new ObjectMapper();
+                    byte[] content = new byte[(int) msg.getBodyLength()];
+                    msg.readBytes(content);
+                    Order order = mapper.readValue(content, Order.class);
+                    assertThat(order).hasNoNullFieldsOrProperties();
+                }
+
+                @Test
+                //Good Approach : MappingJackson2MessageConverter converts the Order into a BytesMessages
+                public void shouldReceiveOrderWithConversion() throws Exception {
+                    Order order = (Order) jms.receiveAndConvert("orders");
+                    System.out.println(order);
+                    assertThat(order).hasNoNullFieldsOrProperties();
+                }
+                }
+    III. Receive Messages Using JMS
+    -------------------------------------
+        Note: Create a class and annotate methods with @JmsListener to bind it to a destination 
+
+        @Component
+        class CurrentDateTimeService {
+        @JmsListener(destination = "time-queue")
+        public void handle(Message msg) throws JMSException {
+            Assert.state(msg instanceof TextMessage, "Can only handle TextMessage.");
+            System.out.println("[RECEIVED] - " + ((TextMessage) msg).getText());
         } }
+
+        NIDHIN:: PENDING
+
 
 
 
@@ -98,7 +384,7 @@ SPRING BOOT ACTUATOR
 ===============================================================
 Enable and Configure Spring Boot Actuator
 -----------------------------------------
-    //pom.xml
+    //1. pom.xml
     <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-actuator</artifactId>
