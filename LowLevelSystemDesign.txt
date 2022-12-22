@@ -1,0 +1,146 @@
+Design Phases
+-------------------------------------
+    High Level/Architectural Design
+        Not too technical (for admin)
+    Low Level Design/Detailed Design
+        Actual Logic of each component and relations
+        Class and UML diagrams
+        technical (for developers)
+
+Purpose of LLD interview
+-------------------------------------
+    Abiility of a candidate to:
+        Define objects and methods from given requirements
+        Identify relation between objects
+        Apply OOP and design patterns
+        Arrive at a Solution for a given requirement
+
+5 steps to approach LLD interview
+-------------------------------------
+    1. Clarify the requirement - Ask questions to get detailed requirement
+    2. Identify the objects from the requirement
+    3. Identify the relationships between objects
+    4. Create class diagram and add methods in classes
+    5. Implement the classes with Actual code
+
+    Note: In every step talk to your interviewer. THINK LOUD. 
+
+Important Tips
+-------------------------------------
+    ALWAYS ASK FOR CLARIFICATION. Verify if your assumptions are valid
+    Make the requirement simple.
+    Keep the design simple
+    Focus more on Solution. Not on the Implementation -> Approach is what is tested.
+    There can be multiple solutions. Should be able to differentiate between the different designs
+    Apply Design Patterns and Solid principles whenever possible
+
+Design a Meeting Scheduler
+===============================================================
+    Step 1: Clarify the requirement. 
+    ---------------------------------
+        Dont directly jump into the solution even if you know the solution well ahead
+        e.g Scheduler which books a meeting at a given time interval?
+            Meeting rooms are constant or dynamically generated?
+            Meeting room selected by organiser?
+            If room is not free, show error to organiser?
+            Capacity Limit for meeting room?
+
+        outcome - Rephrase/summarise the requirement
+        --------------------------------------------
+            Design a meeting Scheduler  
+                1. Can choose specified time and meeting room
+                2. Succesful booking - notification to all attendees
+                3. Failure - send notification to organiser
+                4. Meeting rooms can be added and removed dynamically
+                
+                assumption: Meeting room has unlimited capacity
+
+    Step 2: Identify the objects
+    -------------------------------------
+        Main object - MeetingScheduler - will Schedule the meeting
+        Helper object:
+            MeetingRoom
+                roomName
+                roomId
+                numOfMeetings
+            Meeting
+                startTime
+                endTime
+                subject
+                organiser - User object
+                attendees - User Object List
+            User
+                userId
+                userName
+                emailId
+            Notification - sends notification to organiser or attendees
+
+    Step 3: Identify the relationship between objects
+    -------------------------------------------------
+        MeetingScheduler can shedule MANY Meetings (MeetingScheduler is only blocking a MeetingRoom)
+        MeetingRoom can have MANY Meetings
+        MeetingRoom can have TO_ONE relation with User (organiser)
+        MeetingRoom can have TO_MANY relation with User (attendees)
+        Meeting can TO_ONE relation with MeetingRoom
+        Notification is a ulitity class . No relation with other parts
+        User No relation with other Objects
+
+    Step 4: Design a class diagram
+        1. Draw one to one and one to many relations
+        2. Identify the operations
+
+    Step 5: Implement the classes with the Actual code
+
+
+Design Vending Machine
+===============================================================
+    Step 1: Clarify the requirement. 
+    ---------------------------------
+        1. Store items like cool drinks, snacks and dispense items based on user selection?
+        2. Vending machine should accept cash?
+            What denominations?
+        3. Items in the machine will have different prices, right?
+        4. Each item will have some item code?
+            To get a particular item, user should enter the item code and cash?
+        5. Should machine reject request, if item is not available OR if the change amount to return is not available?
+            Also if the entered cash is less than the item price
+
+        outcome - Rephrase/summarise the requirement
+        --------------------------------------------
+            Design a vending machine that will store items and dispense items based on the user request.
+            User should enter the item code and input cash in accessed denominations
+            Accepted cash denominations 1,5,10,20
+            Reject request:
+                When item is not available
+                Entered cash is lower than the item price
+                no sufficient change to give back
+            Succesful request
+                dispense the corresponding item
+                dispense the remaining change, if any?
+
+    Step 2: Identify the objects
+    -------------------------------------
+        Main Object - VendingMachine
+            Item List
+            changeAmount Hashmap
+        Helper Objects:
+            Item
+                ItemCode
+                ItemName
+                Price
+            BuyRequest
+                itemCode
+                inputAmount
+            Notification
+            Cash enum
+            ItemInventory
+            CashInventory
+
+        Note: Items are limited. So can use as enum
+        Cash can be used as enum
+
+Good Links:
+    https://github.com/prasadgujar/low-level-design-primer/blob/master/questions.md
+
+        
+
