@@ -1,0 +1,396 @@
+Installing Java
+===============================================================
+two main distributions: Oracle JDK and OpenJDK [GNU General Public License]
+    OpenJDK - https://jdk.java.net/17/
+
+    Configuring Path
+    -------------------------------------
+    export PATH="/usr/local/jdk-17/bin:$PATH"
+    java -version
+
+    Configuring the CLASSPATH
+    -------------------------------------
+        set CLASSPATH=C:\JAVA_DEV\some-jar.jar
+        export CLASSPATH=/JAVA_DEV/some-jar.jar
+
+        //adding jar to classpath
+        javac –classpath /JAVA_DEV/some-jar.jar...
+        javac -cp /JAVA_DEV/some-jar.jar...
+
+        //adding directory of jars to classpath
+        //classes within packages/subdirectories are searched, but the jars in subdirectory are not included
+        javac –classpath /JAVA_DEV/*:/JAVA_LIB/myjar.jar...
+
+    JVM finds and loads classes in the below order:
+        1. Java installation directory
+        2. extension directory of the JDK
+        3. classpath
+
+
+Organizing Code with Packages
+===============================================================
+Note: 
+    Packages are a way of grouping related classes together into a shared namespace.
+        organize code, 
+        reduce naming conflicts 
+        Provide access control.
+
+    package org.javabook;
+
+    package statement should be the first line. (a comment or Javadoc comment may be written before the package statement.)
+
+    By convention, package names usually start with a lowercase letter. (usually reverse domain name)
+
+    different classes that reside within the same package have access to each other.
+        If different package,package should be imported and other class should be public
+
+        import org.javabook.JavaBookWidgets;
+        import org.javabook.*; //bad practice
+
+Declaring Variables
+===============================================================
+    type variable = initialValue;
+    public static variable = initialValue; //default, public, protected, or private // default - visible within the package
+        protected - package + subclasses outside package 
+
+
+    boolean booleanVal = true;  /* Default is false */
+
+    char charval = 'G'; /* Unicode UTF-16 */ // 2 bytes
+    charval = '\u0490'; //code point value
+
+    byte byteval; /*  8 bits, -127 to 127 */
+    short shortval; /* 16 bits, -32,768 to 32,768 */
+    int intval; /* 32 bits, -2147483648 to 2147483647 */
+    long longval; /* 64 bits, -(2^64) to 2^64 - 1 */
+    
+    float   floatval = 10.123456F;        /* 32-bit IEEE 754 */
+    double doubleval = 10.12345678987654; /* 64-bit IEEE 754 */
+
+    String message = "Darken the corner where you are!";
+        //String is a class with special declaration syntax
+
+    Note: Avoid primitive types for monetary values esp float. Use  BigDecimal class
+
+    class fields or class members
+    -------------------------------------
+    private long visibleOnlyInThisClass;
+    double visibleFromEntirePackage;
+    public static boolean oneValueForAllObjects = false;
+
+    static fields  occur only once and with a single value that is shared by all instances of the given class
+
+Converting to and from a String
+===============================================================
+    double pi = Double.parseDouble("3.14"); //Similarly Double.parseDouble(), Long.parseLong(), Boolean.parseBoolean() etc
+    String piString = String.valueOf(pi); //overloaded to take different types
+
+    //Note: Boolean.parseBoolean("Nidhin") //false
+
+Passing Arguments via Command-Line Execution
+===============================================================
+    public static void main(String[] args){
+        if(args.length > 0){
+            System.out.println("Arguments that were passed to the program: "); 
+            for (String arg:args){
+                System.out.println(arg);
+            }
+        } else {
+            System.out.println("No arguments passed to the program.");
+    }
+
+    //invoke from command line
+    java PassingArguments Luciano Manelli "Single Argument with spaces"
+    //Note: All arguments are strings. Numeric arguments have to be converted.
+
+Accepting Input from the Keyboard
+===============================================================
+    BufferedReader readIn = new BufferedReader(
+                new InputStreamReader(System.in) );
+    //System.in represents the keyboard - access to raw bytes
+    //InputStreamReader converts raw bytes to characters
+    //BufferedReader detects line breaks and reads a line
+        //also reads from the input device to be done in different-size chunks. Efficient way
+
+    do {
+        /* Ask the user for a number. */
+        System.out.println("Please enter a number: ");
+
+        //Read number as string
+        try {
+            String numberAsString = readIn.readLine();
+            //readLine() returns one line of input
+            System.out.println("You entered " + numberAsString);
+        } catch (IOException ex){
+            System.out.println(ex);
+        }
+
+        //convert number to appropriate data type
+        try {
+            numberAsLong = Long.parseLong(numberAsString);
+            numberIsValid = true;
+        } catch (NumberFormatException nfe) {
+            System.out.println ("Not a number!");
+        }
+    } while (numberIsValid == false);
+
+Comments
+===============================================================
+    JavaDoc Comments
+    -------------------------------------
+    /**
+     * Accepts an unlimited number of values and
+     * returns the sum.
+     *
+     * @param nums Must be an array of BigInteger values.
+     * @return Sum of all numbers in the array.
+     * @see: Reference to another piece of code
+     */
+
+    Note: To include an inline link, use the tag {@link My Link}
+
+    Note: Fields are rarely commented using JavaDoc unless they are declared public static final (constants)
+
+    Note: other tags - {@literal}, {@code}, {@value org} etc
+
+
+    invoking javadoc tool
+    -------------------------------------
+    javadoc JavadocExample.java
+    //load index.html (inside the same package) in browser
+    //index-all.html file gives an alphabetical listing of documented entities
+
+    javadoc org.luciano.beans
+    //package name
+    //generates in same package as code. NIGHTMARE
+
+    javadoc org.luciano.beans -d /home/javabooks/javadoc
+
+Reading Environment Variables
+===============================================================
+    String value = System.getenv(args[0]);
+
+    if (value != null) {
+        System.out.println(args[0].toUpperCase() + " = " + value);
+    } else {
+        System.out.println("No such environment variable exists");
+    }
+
+    Getting Entire list of environment variables 
+    ---------------------------------------------
+    Map<String, String> vars = System.getenv();
+    for(String var : vars.keySet()){
+        System.out.println(var + " = " + vars.get(var));
+    }
+
+var Keyword - New Feature
+===============================================================
+    Note: local variable type inference - Java 10
+    compiler decides the type based on the value assigned to the variable.
+    Note: Cannot be used a class member
+
+    var num = 1;
+    var city = "Taranto"; //same as String city = "Taranto";
+
+Reading the Contents of Files - New Feature
+===============================================================
+    Note: Java 11 - new Files class methods
+
+    Path filePathHello = Paths.get("C:/hello.txt");
+
+    try {
+        String contents = Files.readString(filePath  filePathHello);
+        //same as readString(path, StandardCharsets.UTF_8).
+        //OR Files.readString(Path, Charset) 
+        System.out.println(contents);
+    }catch (IOException err)
+    {
+        err.printStackTrace();
+    }
+
+Writing a Text Block - New Feature
+===============================================================
+    Note: Java 13 - multiline strings 
+    String writeTextSmart = """
+      <html>
+           <p>Ciao, hello</p>
+      </html>
+      """;
+
+Enhanced NullPointerException - New Feature
+===============================================================
+    Note: Java 14 - Java Virtual Machine describes exactly which variable is null.
+    String professor= null;
+    System.out.println(professor.length()); //NPE
+
+    Exception in thread "main" java.lang.NullPointerException:
+        Cannot invoke "String.length()" because "professor" is null
+
+Pattern Matching for instanceof - New Feature
+===============================================================
+    Note: Java 16
+
+    Object selectedObject="I love Taranto";
+
+    //old way
+    if (selectedObject instanceof String) {
+        String selectedString = (String) selectedObject;
+        System.out.println(selectedString.length());
+    }
+    // Java 16 way
+    if (selectedObject instanceof String selectedString) {
+        System.out.println(selectedString.length());
+    }
+
+Record - New Feature
+===============================================================
+    Note: Java 16 . Same as JavaBean
+    Note: to preserve the immutability of data, defines equals, hashCode, and toString methods.
+    
+    //Defining a record
+    record Professor (Integer id, String name, String surname) {}
+
+    //Instantiating a record
+    Professor prof = new Professor (1, "Luciano", "Manelli");
+
+    Professor prof = new Professor ();
+    prof.setId(1);
+    prof.setName("Luciano");
+    prof.setSurname("Manelli");
+
+Always-Strict Floating-Point Semantics - New Feature
+===============================================================
+    Java 17 restores the default always-strict function, making the floating-point operations uniformly strict.
+    ensure platform-independent floating-point computations
+
+    old versions
+    -------------------------------------
+    strictfp class  AppliedClass{}//strict floating point applied on class
+    strictfp interface AppliedInterface{}// strict floating point applied on interface
+
+    e.g 
+    public strictfp class SumFPnumbersStrict {
+    
+        public double sumNumbers(double fpOne, double fpTwo) {
+            return fpOne + fpTwo;
+        }
+    }
+
+    new version 
+    -------------------------------------
+    class AppliedClass{}//strictfp applied on class
+    interface AppliedInterface{}//strictfp applied on interface
+
+    public class sumFPnumbers {
+            public double SumNumbers(double fpOne, double fpTwo) {
+        return fpOne + fpTwo;
+        }
+    }
+
+Pseudorandom Number Generators - New feature
+===============================================================
+    Java 17 - new interface, RandomGenerator
+
+    public class UseNewPRNGs implements RandomGenerator {
+        static UseNewPRNGs testGen = new UseNewPRNGs();
+
+        public static void main(String[] args){
+            for (int i = 0; i < 5; i++) {
+                System.out.println(testGen.nextBoolean());
+                System.out.println(testGen.nextDouble());
+                System.out.println(testGen.nextInt());
+                System.out.println(testGen.nextLong());
+        } }
+        @Override
+        public long nextLong() {
+        //Returns a pseudorandomly chosen long value.
+        Random r= new Random();
+        return r.nextLong();
+        } 
+    }
+
+Sealed Classes - New feature
+===============================================================
+    //Java 17 -sealed scope modifier allows controlling the permitted subtypes for classes and interfaces. 
+    three constraints on its permitted subclasses 
+        must belong to the same module as the sealed class
+        must extend the sealed class
+        Subclass must define a modifier: final, sealed, or non-sealed.
+
+
+    A class can also be non-sealed (i.e., it can be extended by any unknown subclasses).
+
+    public sealed class LineShape permits Rectangle, Triangle, Square {} 
+    //LineShape class permits exactly and only three subclasses: Rectangle, Triangle, and Square.   
+
+    //Rectangle class is declared as final. Thus no other classes can extend this class.
+    public final class Rectangle extends LineShape {}
+
+    public non-sealed class Triangle extends LineShape {}
+
+    public sealed class Square extends LineShape permits ColorSquare {}
+    //Square class permits exactly and only ColorSquare
+
+    NOTE: To compile LineShape.java, the compiler must access all the permitted classes of Shape: Triangle.java, Square.java, and Rectangle.java. 
+    In addition, because Square is a sealed class, the compiler also needs access to ColorSquare.java.
+
+Vector API - New Feature
+===============================================================
+    Java 17
+
+    //Before Java 17
+    static void nonVectorSumInt(int[] arrayOne, int[] arrayTwo, int[] s) {
+        for (int i = 0; i < arrayOne.length; i++) {
+            s[i] = (arrayOne[i]  +  arrayTwo[i]) ;
+        } 
+    }
+
+    //using vector
+    static final VectorSpecies<Integer> SPECIES = IntVector.SPECIES_PREFERRED;
+    static void vectorSumInt(int[] arrayOne, int[] arrayTwo, int[] s) {
+        int i = 0;
+        int upperBound = SPECIES.loopBound(arrayOne.length);
+        for (; i < upperBound; i += SPECIES.length()) {
+            var vIntaOne = IntVector.fromArray(SPECIES,
+            arrayOne, i);
+            var vIntaTwo = IntVector.fromArray(SPECIES,
+            arrayTwo, i);
+            var vs = vIntaOne.add(vIntaTwo);
+            vs.intoArray(s, i);
+        }
+        for (; i < arrayOne.length; i++) {
+            s[i] = (arrayOne[i]  + arrayTwo[i] );
+        } 
+    }
+
+    //Testing
+    ----------
+        public static void main(String[] args) {
+        int[] a = new int[]{1, 3, 2, 4};
+        int[] b = {5, 6, 7, 8};
+        int[] c = {0, 0, 0, 0};
+        VectorExample.nonVectorSumInt(a, b, c);
+        System.out.println("nonVectorSumInt");
+        for (int i = 0; i < c.length; i++) {
+            System.out.println(c[i]);
+        }
+
+        VectorExample.vectorSumInt(a, b, c);
+        System.out.println("vectorSumInt");
+        for (int i = 0; i < c.length; i++) {
+                        System.out.println(c[i]);
+        } 
+        }
+
+    //Invoking
+    ----------
+    javac --add-modules jdk.incubator.vector  VectorExample.java
+    java --add-modules jdk.incubator.vector  VectorExample
+
+Avoiding Redundancy in Interface Code - New Feature
+===============================================================
+    Java 9 - include private methods within an interface
+
+
+
+
