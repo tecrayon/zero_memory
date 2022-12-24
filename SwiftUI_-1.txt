@@ -1,0 +1,471 @@
+Starting New SwiftUI Project
+===============================================================
+    Create a new Xcode project 
+    Select iOS, and then App
+    In the Interface menu, make sure SwiftUI is selected instead of storyboard
+    Product Name
+
+layout components
+===============================================================
+Stack, HStack, and ZStack
+
+    VStack
+    -------------------------------------
+        VStack{
+            Text("VStack Item 1")
+            Text("VStack Item 2")
+            Text("VStack Item 3")
+        } .background(Color.blue)
+    
+    Note: Cmd + Option + Enter if the canvas is not visible
+
+        Spacer() 
+            //forces the view to use the maximum amount of vertical space.
+            //fills the remaining space after all other views have been displayed.
+
+        Divider()   
+        draw a horizontal line across the width of its parent view. 
+            .background(Color.black) //set divider color
+
+         .frame modifier
+        -------------------------------------
+            to adjust the width and height of a component.
+            .frame(
+                maxWidth: .infinity,
+                maxHeight: .infinity,
+                alignment: .topLeading
+            )
+
+    HStack
+    -------------------------------------
+        HStack{
+            Text("Item 1")
+            Divider().background(Color.black)
+            Text("HStack Item 2")
+            Divider()
+            .background(Color.black)
+            Spacer()
+            Text("HStack Item 3")
+        }.background(Color.red)
+
+        ZStack{
+            Text("ZStack Item 1")
+            .padding()
+            .background(Color.green)
+            .opacity(0.8)
+            Text("ZStack Item 2")
+            .padding()
+            .background(Color.green)
+            .offset(x: 80, y: -400)
+        }
+
+Text view 
+===============================================================
+    Note: display one or more lines of read-only text on the screen
+
+    Display Text
+    -------------------------------------
+        Text("Changing text color and make it bold")
+        Text("password entered: \(password)")
+
+        struct ContentView: View {
+            var body: some View {
+                VStack{
+                    Text("Hello World")
+                }
+            }
+        }
+
+    Attributes
+    ----------
+        .italic()
+        .font(.largeTitle)
+        .underline()
+        .foregroundColor(Color.blue)
+        .bold()
+        .fontWeight(.medium)
+
+    TextField View - multiline editable text
+    -----------------------------------------
+        TextField("Enter some text", text: $someText)
+            .padding()
+
+    SecureField view 
+    -----------------------------------------
+        private information that should be hidden, such as passwords.
+        SecureField("Enter a password", text: $password)
+            .padding()
+
+        Note: 
+            TextField and SecureField require state variables to store the value entered by the user. 
+            State variables are declared using the @State keyword. 
+            SwiftUI manages the storage of properties declared by using @State and refreshes the body each time the value of the state variable changes.
+            Values entered by the user are stored using the process of binding
+            The $ symbol is used to bind a state variable to the field.
+            Binding also notifies other views of state changes and causes the views to be redrawn on state change.
+        Adding state variables
+        -------------------------------------
+            struct ContentView: View {
+                @State var password = "1234"
+                @State var someText = "initial text"
+            var body: some View {
+
+Note: 
+    SwiftUI views (Hstack, Vstack etc) can hold a maximum of 10 elements. 
+    To add an eleventh element, you would have to enclose some elements in a Group view
+    Items in a Group are considered as one view. 
+
+        Group {
+            Text("Item 1")
+            ...
+            Text("Item 10")
+            }
+            Text("Item 11")
+
+Working with Images
+===============================================================
+    adding an image to a view
+    -------------------------------------
+        1. Place the image in project's xcassets (or Assets) folder
+        
+        Vstack{
+            Image("dogs1") //displays image in original proportion
+        }
+
+        Attributes
+        ----------
+            Note: order in which the modifiers are added matters.
+
+            .resizable() //fits the screen space available 
+            .aspectRatio(contentMode: .fit) //fix the distortion
+            .frame(width:300, height:200) //specify width and height of image
+            .clipShape(Circle()) //clipping the image
+            .overlay(Circle().stroke(Color.blue, lineWidth: 6)) // draw a blue line around the image
+            .shadow(radius: 10) //add a shadow around the image
+
+        To use UI Image class as input for Images
+        -------------------------------------------
+        func getImageFromUIImage(image:String) -> UIImage {
+            guard let img = UIImage(named: image) else {
+                fatalError("Unable to load image")
+            }
+            return img
+        }
+
+        Image(uiImage: getImageFromUIImage(image:
+            "dog2"))
+            .resizable()
+            .frame(width: 200, height: 200)
+            .aspectRatio(contentMode: .fit)
+            }
+
+Working with buttons
+===============================================================
+    Avoid using the MenuButton view because this is deprecated and only available in macOS 10.14-12.0. For similar functionality, use the Menu view instead.
+
+    NavigationView to navigate between the SwiftUI views 
+    -----------------------------------------------
+        
+        //1. Creating a custom View Page
+        -------------------------------------
+            File | New | File ⌘ + N
+            SwiftUI View
+            Save As  ButtonView
+        
+        //2. Creating a navigation page
+        -------------------------------------
+        Note: A NavigationLink must be placed in a NavigationView
+
+        NavigationLink buttons can be used to move from one SwiftUI view file to another
+
+        NavigationView {
+                VStack{
+
+                    //Navigate to ButtonView custom Page
+                    NavigationLink(destination: ButtonView()){
+                        Text("Buttons")
+                    }
+
+                    //Navigate to text 
+                    NavigationLink(destination:
+                                    Text("Very long text that should not be displayed in a single line because it is not good design")
+                        .padding()
+                        .navigationBarTitle(Text("Detail"))
+                    ){
+                        Text("details about text")
+                            .padding()
+                    }
+
+                }.navigationBarTitle(Text("Main View"),displayMode:.inline)
+        }
+
+    Creating a navigation view from a list
+    -------------------------------------
+        struct EditButtonView: View {
+        @State private var animals = ["Cats","Dogs", "Goats"]
+        var body: some View {
+            NavigationView{
+                List{
+                    ForEach(animals, id: \.self){ animal in
+                        Text(animal)
+                    }.onDelete(perform: removeAnimal)
+                }
+                .navigationBarItems(trailing:EditButton())
+                .navigationBarTitle(Text("EditButtonView"),
+                                    displayMode: .inline)
+            }
+        }
+
+        func removeAnimal(at offsets: IndexSet){
+            animals.remove(atOffsets: offsets)
+        }
+    
+    
+}
+
+Picker View
+===============================================================
+    Note: 
+    Form views group controls are used for data entry, and Section views create hierarchical view content. 
+    Form and Section views can be coupled to generate the gray padding area between each component.
+
+    //The @State variables should be of the same type as the data to be stored.
+    @State var choice = 0
+    @State var transitModes = ["Bike", "Car", "Bus"]
+
+    ....
+    Form{
+        Section{
+            Picker("Transit Modes", selection: $choice){
+                ForEach( 0 ..< transitModes.count) { index in Text("\(self.transitModes[index])")
+        }
+        }.pickerStyle(SegmentedPickerStyle())
+        Text("Current choice:
+        \(transitModes[choice])")
+        }
+        }
+
+
+ Toggle view:
+ ===============================================================
+    @State var showText = false
+
+    .....
+    Section{
+        Toggle(isOn: $showText){
+            Text("Show Text")
+        }
+        if showText {
+            Text("The Text toggle is on")
+        }
+    }
+
+Slider view:
+===============================================================
+    @State var sliderVal: Float = 0
+
+    ....
+
+    Section{
+        Slider(value: $sliderVal, in: 0...10,step: 0.001)
+            Text("Slider current value \(sliderVal, specifier: "%.1f")")
+    }
+
+Stepper view:
+===============================================================
+    @State var stepVal = 0
+
+    ...
+
+    Section {
+        Stepper("Stepper", value: $stepVal, in: 0...5)
+            Text("Stepper current value \(stepVal)")
+    }
+
+DatePicker view
+===============================================================
+    @State var gameTime = Date()
+
+    ...
+    Section {
+        DatePicker("Please select a date",
+        selection: $gameTime)
+    }
+
+    only accepts future dates:
+    -------------------------------------
+        Section {
+            DatePicker("Please select a date",
+            selection: $gameTime, in: Date()...)
+        }
+
+Applying styles using ViewModifier
+===============================================================
+    SwiftUI comes with built-in modifiers such as background() and fontWeight()
+
+    Text("Perfect")
+
+    struct BackgroundStyle: ViewModifier {
+        var bgColor: Color
+        func body(content: Content) -> some View{
+        content
+            .frame(width:UIScreen.main.bounds.width * 0.3)
+            .foregroundColor(Color.black)
+            .padding()
+            .background(bgColor)
+            .cornerRadius(CGFloat(20))
+        }
+    }
+
+
+
+
+ProgressView (iOS 14+)
+===============================================================
+    @State private var progress = 0.5
+
+    ...
+    List{
+        Section(header: Text("ProgressViews")) {
+
+            //Indeterminate ProgressView require no parameters
+            ProgressView("Indeterminate progress view")
+
+            // parameter that takes a state variable 
+            //total parameter in the ProgressView component is optional and defaults to 1.0 if not specified.
+            ProgressView("Downloading",value:     progress, total:2)
+            Button("More"){
+                if(progress < 2){
+                progress += 0.5
+            }
+        }
+    }
+
+Labels with custom text and Icon
+===============================================================
+    Label{
+        Text ("Fast")
+            .font(.title)
+        }
+        
+        icon: {
+            Circle()
+                .fill(Color.orange)
+                .frame(width: 40, height: 20,
+                alignment: .center)
+                .overlay(Text("F"))
+        } 
+    }
+
+ColorPicker view
+===============================================================
+    @State private var color  = Color.red
+    @State private var secondColor  = Color.yellow
+
+    ...
+    ColorPicker(selection: $color ){
+        Text("Pick my background")
+            .background(color)
+            .padding()
+        }
+
+    ColorPicker("Picker", selection:$secondColor )
+
+Link views
+===============================================================
+    Link("Packt Publishing", destination: URL(string:"https://www.packtpub.com/")!)
+
+Menu view 
+===============================================================
+    Menu("Actions") {
+        Button("Set TextEditor text to 'magic'"){
+            someText = "magic"
+        }
+
+        Button("Turn first picker green") {
+            color = Color.green
+        }
+        
+        //Nested Menu
+        //Although menus can be nested, this should be done sparingly as too much nesting may decrease usability.
+        Menu("Actions") {
+
+            Button("Set TextEditor text to 'nested Magic'"){
+                someText = "nested magic"
+            }
+
+            Button("Turn first picker red") {
+                color = Color.red
+            }
+        }
+    }
+
+Section View
+===============================================================
+    Section(header: Text("Labels")) {
+        ...
+    }
+
+Label View
+===============================================================
+    Label("Slow ", systemImage:"tortoise.fill")
+    
+    OR 
+
+    Label{
+        Text ("Fast")
+            .font(.title)
+    }icon: {
+        Circle()
+            .fill(Color.orange)
+            .frame(width: 40, height:
+                    20, alignment: .center)
+            .overlay(Text("F"))
+    }
+
+Circle View with String overlay
+=============================================================== 
+    Circle()
+        .fill(Color.orange)
+        .frame(width: 40, height:20, alignment: .center)
+        .overlay(Text("F"))
+
+
+
+LazyHStack and LazyVStack
+===============================================================
+    SwiftUI 2.0
+    similar to the regular HStack and VStack -
+    extra advantage of lazy loading its content
+        list's content is loaded just before it becomes visible on the device's screen
+        no perceptible UI lag or long load times.
+
+
+
+
+Xcode
+===============================================================
+Close a project:
+-------------------------------------
+With Xcode closed, locate that project folder in the Finder, move it to the trash, then empty the trash.
+
+Format
+-------------------------------------
+cmd + A , ctrl + I
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
